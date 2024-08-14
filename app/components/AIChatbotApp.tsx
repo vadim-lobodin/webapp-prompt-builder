@@ -165,14 +165,20 @@ const AIChatbotApp: React.FC = () => {
         if (readyPercentage < 80) {
             setIsLoading(true);
             try {
-                const response = await openai.chat.completions.create({
+                const [response] = await Promise.all([openai.chat.completions.create({
                     model: "gpt-3.5-turbo",
                     messages: [
-                        {role: "system", content: "You are an AI assistant helping to create an app concept. Based on the previous conversation, ask a single, clear follow-up question about another aspect of the app. Then, provide 5 possible answers as options, but do not include these in your question. Format your response as JSON with 'question' and 'options' fields."},
-                        ...messages.map(msg => ({role: msg.isUser ? "user" : "assistant", content: msg.content})),
-                        {role: "user", content: selectedChoices.join(', ')}
+                        {
+                            role: "system",
+                            content: "You are an AI assistant helping to create an app concept..."
+                        },
+                        ...messages.map(msg => ({
+                            role: msg.isUser ? "user" : "assistant" as "user" | "assistant",
+                            content: msg.content
+                        })),
+                        { role: "user", content: selectedChoices.join(', ') }
                     ],
-                });
+                })]);
 
                 const content = response.choices[0].message.content;
                 if (content) {

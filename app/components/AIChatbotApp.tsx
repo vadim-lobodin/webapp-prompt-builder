@@ -108,7 +108,7 @@ const AIChatbotApp: React.FC = () => {
             const response = await openai.chat.completions.create({
                 model: "gpt-3.5-turbo",
                 messages: [
-                    {role: "system", content: "You are an AI assistant helping to create an app concept. Ask a single, clear follow-up question about the app idea. Then, provide 5 possible answers as options, but do not include these in your question. Important: Format your response as JSON with 'question' and 'options' fields."},
+                    {role: "system", content: "You are an AI assistant helping to create an app concept. Ask a single, clear follow-up question about the app idea. Then, provide 5 possible answers as options, but do not include these in your question. Format your response as JSON with 'question' and 'options' fields."},
                     {role: "user", content: input}
                 ],
             });
@@ -165,20 +165,14 @@ const AIChatbotApp: React.FC = () => {
         if (readyPercentage < 80) {
             setIsLoading(true);
             try {
-                const [response] = await Promise.all([openai.chat.completions.create({
+                const response = await openai.chat.completions.create({
                     model: "gpt-3.5-turbo",
                     messages: [
-                        {
-                            role: "system",
-                            content: "You are an AI assistant helping to create an app concept..."
-                        },
-                        ...messages.map(msg => ({
-                            role: msg.isUser ? "user" : "assistant" as "user" | "assistant",
-                            content: msg.content
-                        })),
-                        { role: "user", content: selectedChoices.join(', ') }
+                        {role: "system", content: "You are an AI assistant helping to create an app concept. Based on the previous conversation, ask a single, clear follow-up question about another aspect of the app. Then, provide 5 possible answers as options, but do not include these in your question. Format your response as JSON with 'question' and 'options' fields."},
+                        ...messages.map(msg => ({role: msg.isUser ? "user" : "assistant", content: msg.content})),
+                        {role: "user", content: selectedChoices.join(', ')}
                     ],
-                })]);
+                });
 
                 const content = response.choices[0].message.content;
                 if (content) {
@@ -233,18 +227,66 @@ const AIChatbotApp: React.FC = () => {
     return (
         <div className="flex justify-center items-center min-h-screen w-full bg-gray-100 p-4">
             <div className="w-full max-w-[800px] space-y-7">
-                {stage === 'initial' ? (
-                    <div className="flex gap-3">
+                {messages.map((message) => (
+                    <p
+                        key={message.id}
+                        style={{ opacity: message.opacity }}
+                        className={`text-[17px] leading-[26px] transition-opacity duration-300 ${
+                            message.isUser ? 'text-gray-700' : 'font-semibold text-gray-900'
+                        }`}
+                    >
+                        {message.isUser ? message.content : (
+                            <TypingEffect text={message.content} onComplete={handleTypingComplete} />
+                        )}
+                    </p>
+                ))}
+
+                {stage === 'initial' && messages.length === 0 && (
+                    <div className="space-y-3">
+                        <p className="font-semibold text-gray-900 text-[19px] leading-[28px]">
+                            <TypingEffect text="Let's start building your app concept!" onComplete={handleTypingComplete} />
+                        </p>
+                        <p className="text-gray-700 text-[17px] leading-[26px]">
+                            <TypingEffect text="What kind of app would you like to create?" onComplete={handleTypingComplete} />
+                        </p>
+                    </div>
+                )}
+
+                <div
+                    className={`flex flex-wrap gap-3 transition-all duration-500 ease-in-out ${
+                        showChoices && choices.length > 0 ? 'opacity-100 max-h-[1000px]' : 'opacity-0 max-h-0 overflow-hidden'
+                    }`}
+                >
+                    {choices.map((choice, index) => (
+                        <ToggleButton
+                            key={index}
+                            label={choice.label}
+                            isSelected={choice.isSelected}
+                            onClick={() => handleChoiceToggle(choice.label)}
+                        />
+                    ))}
+                </div>
+
+                <div className="flex justify-end items-center space-x-4 pt-2">
+                    {stage !== 'initial' && (
+                        <p className="text-gray-500 text-[17px]">
+                            {readyPercentage}% ready
+                        </p>
+                    )}
+                    <div className={`flex gap-3 flex-grow transition-all duration-500 ease-in-out ${
+                        stage === 'initial' ? 'opacity-100 max-h-[100px]' : 'opacity-0 max-h-0 overflow-hidden'
+                    }`}>
                         <Input
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                            placeholder="What kind of app would you like to create?"
-                            className="flex-grow h-14 text-lg"
+                            placeholder="Type your app idea..."
+                            className="flex-grow"
+                            disabled={isLoading}
                         />
                         <Button
                             onClick={handleSendMessage}
-                            className="rounded-full w-14 h-14 p-0 flex items-center justify-center bg-black hover:bg-gray-800"
+                            className="rounded-full w-[52px] h-[52px] p-0 flex items-center justify-center bg-black hover:bg-gray-800"
                             disabled={isLoading}
                         >
                             {isLoading ? (
@@ -256,57 +298,22 @@ const AIChatbotApp: React.FC = () => {
                             )}
                         </Button>
                     </div>
-                ) : (
-                    <>
-                        {messages.map((message) => (
-                            <p
-                                key={message.id}
-                                style={{ opacity: message.opacity }}
-                                className={`text-[17px] leading-[26px] transition-opacity duration-300 ${
-                                    message.isUser ? 'text-gray-700' : 'font-semibold text-gray-900'
-                                }`}
-                            >
-                                {message.isUser ? message.content : (
-                                    <TypingEffect text={message.content} onComplete={handleTypingComplete} />
-                                )}
-                            </p>
-                        ))}
-
-                        <div
-                            className={`flex flex-wrap gap-3 transition-all duration-500 ease-in-out ${
-                                showChoices && choices.length > 0 ? 'opacity-100 max-h-[1000px]' : 'opacity-0 max-h-0 overflow-hidden'
-                            }`}
+                    {stage !== 'initial' && (
+                        <Button
+                            onClick={handleNextStep}
+                            className="rounded-full w-[52px] h-[52px] p-0 flex items-center justify-center bg-black hover:bg-gray-800"
+                            disabled={isLoading}
                         >
-                            {choices.map((choice, index) => (
-                                <ToggleButton
-                                    key={index}
-                                    label={choice.label}
-                                    isSelected={choice.isSelected}
-                                    onClick={() => handleChoiceToggle(choice.label)}
-                                />
-                            ))}
-                        </div>
-
-                        <div className="flex justify-end items-center space-x-4 pt-2">
-                            <p className="text-gray-500 text-[17px]">
-                                {readyPercentage}% ready
-                            </p>
-                            <Button
-                                onClick={handleNextStep}
-                                className="rounded-full w-14 h-14 p-0 flex items-center justify-center bg-black hover:bg-gray-800"
-                                disabled={isLoading}
-                            >
-                                {isLoading ? (
-                                    <div className="w-6 h-6 border-t-2 border-white rounded-full animate-spin"></div>
-                                ) : (
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-7 h-7 text-white">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
-                                )}
-                            </Button>
-                        </div>
-                    </>
-                )}
+                            {isLoading ? (
+                                <div className="w-6 h-6 border-t-2 border-white rounded-full animate-spin"></div>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-7 h-7 text-white">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                            )}
+                        </Button>
+                    )}
+                </div>
             </div>
         </div>
     );

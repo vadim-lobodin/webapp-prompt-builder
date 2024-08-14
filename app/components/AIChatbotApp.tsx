@@ -112,7 +112,6 @@ const AIChatbotApp: React.FC = () => {
                     {role: "user", content: input}
                 ],
             });
-
             const content = response.choices[0].message.content;
             if (content) {
                 try {
@@ -170,7 +169,7 @@ const AIChatbotApp: React.FC = () => {
                     messages: [
                         {
                             role: "system",
-                            content: "You are an AI assistant helping to create an app concept..."
+                            content: "You are an AI assistant helping to create an app concept. Based on the previous conversation, ask a single, clear follow-up question about another aspect of the app. Then, provide 5 possible answers as options, but do not include these in your question. Format your response as JSON with 'question' and 'options' fields."
                         },
                         ...messages.map(msg => ({
                             role: msg.isUser ? "user" : "assistant" as "user" | "assistant",
@@ -179,7 +178,7 @@ const AIChatbotApp: React.FC = () => {
                         { role: "user", content: selectedChoices.join(', ') }
                     ],
                 })]);
-
+                console.log("Raw response:", response);
                 const content = response.choices[0].message.content;
                 if (content) {
                     try {

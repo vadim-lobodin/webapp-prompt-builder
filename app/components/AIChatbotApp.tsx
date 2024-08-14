@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import OpenAI from 'openai';
@@ -84,6 +84,14 @@ const AIChatbotApp: React.FC = () => {
     const [showChoices, setShowChoices] = useState(false);
     const [currentQuestion, setCurrentQuestion] = useState<string>('');
     const [isTypingComplete, setIsTypingComplete] = useState(true);
+
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (inputRef.current) {
+            inputRef.current.focus();
+        }
+    }, []);
 
     const addMessage = useCallback((content: string, isUser: boolean) => {
         setMessages(prev => [
@@ -271,7 +279,7 @@ const AIChatbotApp: React.FC = () => {
 
     if (isLoading && stage === 'completed') {
         return (
-            <div className="flex justify-center items-center min-h-screen bg-gray-100">
+            <div className="flex justify-center items-center min-h-screen bg-gradient-to-b from-[#DBDEE3] to-[#FAFAFA]">
                 <div className="flex flex-col items-center justify-center space-y-4">
                     <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                     <p className="text-xl font-semibold text-gray-700">Your app is being built</p>
@@ -281,11 +289,12 @@ const AIChatbotApp: React.FC = () => {
     }
 
     return (
-        <div className="flex justify-center items-center min-h-screen w-full bg-gray-100 p-4">
+        <div className="flex justify-center items-center min-h-screen w-full bg-gradient-to-b from-[#DBDEE3] to-[#FAFAFA] p-4">
             <div className="w-full max-w-[800px] space-y-7">
                 {stage === 'initial' ? (
                     <div className="flex gap-3">
                         <Input
+                            ref={inputRef}
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
@@ -296,6 +305,7 @@ const AIChatbotApp: React.FC = () => {
                             onClick={handleSendMessage}
                             className="rounded-full w-14 h-14 p-0 flex items-center justify-center bg-black hover:bg-gray-800"
                             disabled={isLoading}
+                            style={{ aspectRatio: '1 / 1' }}
                         >
                             {isLoading ? (
                                 <div className="w-6 h-6 border-t-2 border-white rounded-full animate-spin"></div>
@@ -352,6 +362,7 @@ const AIChatbotApp: React.FC = () => {
                                 onClick={handleNextStep}
                                 className="rounded-full w-14 h-14 p-0 flex items-center justify-center bg-black hover:bg-gray-800"
                                 disabled={isLoading || !isTypingComplete}
+                                style={{ aspectRatio: '1 / 1' }}
                             >
                                 {isLoading ? (
                                     <div className="w-6 h-6 border-t-2 border-white rounded-full animate-spin"></div>

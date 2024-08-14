@@ -67,9 +67,9 @@ const TypingEffect: React.FC<{ text: string; onComplete: () => void }> = ({ text
 
     return (
         <span>
-      {displayText}
+            {displayText}
             {!isTypingComplete && <span className="animate-pulse">|</span>}
-    </span>
+        </span>
     );
 };
 
@@ -213,6 +213,54 @@ const AIChatbotApp: React.FC = () => {
         }
     };
 
+    const handleMoreChoices = async () => {
+        setIsLoading(true);
+        try {
+            const response = await openai.chat.completions.create({
+                model: "gpt-3.5-turbo",
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are an AI assistant helping to create an app concept. Based on the previous conversation and choices, provide 5 additional options related to the current question. Format your response as JSON with an 'options' field containing an array of 5 strings."
+                    },
+                    ...messages.map(msg => ({
+                        role: msg.isUser ? "user" : "assistant" as "user" | "assistant",
+                        content: msg.content
+                    })),
+                    { role: "user", content: "Generate 5 more options related to the current question." }
+                ],
+            });
+
+            const content = response.choices[0].message.content;
+            if (content) {
+                try {
+                    const aiResponse = JSON.parse(content) as { options: string[] };
+                    if (Array.isArray(aiResponse.options)) {
+                        setChoices(prev => [
+                            ...prev,
+                            ...aiResponse.options.map(option => ({
+                                label: option,
+                                isSelected: false
+                            }))
+                        ]);
+                    } else {
+                        throw new Error("Invalid response format");
+                    }
+                } catch (parseError) {
+                    console.error('Error parsing AI response:', parseError);
+                    addMessage("I'm sorry, I received an invalid response for additional options. Please try again.", false);
+                }
+            } else {
+                throw new Error("No content in AI response");
+            }
+        } catch (error) {
+            console.error('Error calling OpenAI API for more choices:', error);
+            addMessage("I'm sorry, I encountered an error while fetching more options. Please try again.", false);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     useEffect(() => {
         // Scroll to bottom when messages change
         window.scrollTo(0, document.body.scrollHeight);
@@ -284,6 +332,13 @@ const AIChatbotApp: React.FC = () => {
                                     onClick={() => handleChoiceToggle(choice.label)}
                                 />
                             ))}
+                            <Button
+                                onClick={handleMoreChoices}
+                                className="h-14 px-5 py-3 rounded-full border text-[19px] font-medium bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                disabled={isLoading}
+                            >
+                                {isLoading ? 'Loading...' : 'More'}
+                            </Button>
                         </div>
 
                         <div className="flex justify-end items-center space-x-4 pt-2">

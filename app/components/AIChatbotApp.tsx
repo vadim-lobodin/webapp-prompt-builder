@@ -108,7 +108,7 @@ const AIChatbotApp: React.FC = () => {
             const response = await openai.chat.completions.create({
                 model: "gpt-3.5-turbo",
                 messages: [
-                    {role: "system", content: "You are an AI assistant helping to create an app concept. Ask a single, clear follow-up question about the app idea. Then, provide 5 possible answers as options, but do not include these in your question. Format your response as JSON with 'question' and 'options' fields."},
+                    {role: "system", content: "You are an AI assistant helping to create an app concept. Ask a single, clear follow-up question about the app idea. Then, provide 5 possible answers as options, but do not include these in your question. Important: Format your response as JSON with 'question' and 'options' fields."},
                     {role: "user", content: input}
                 ],
             });

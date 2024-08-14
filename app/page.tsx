@@ -1,4 +1,4 @@
-import AIChatbotApp from '@/components/AIChatbotApp'
+import AIChatbotApp from './components/AIChatbotApp'
 
 export default function Home() {
     return (

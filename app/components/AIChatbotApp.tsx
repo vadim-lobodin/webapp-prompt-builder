@@ -114,7 +114,7 @@ const AIChatbotApp: React.FC = () => {
             console.log('Sending API request with messages:', messages);
 
             const response = await openai.chat.completions.create({
-                model: "gpt-4o-mini",
+                model: "gpt-4o",
                 messages,
             });
 
@@ -175,7 +175,7 @@ const AIChatbotApp: React.FC = () => {
 
         try {
             const aiResponse = await handleApiCall([
-                { role: "system", content: "You are an AI assistant helping to create an app concept. Ask a single, clear follow-up question about the app idea. Then, provide 5 possible answers as options, but do not include these in your question. Important: Format your response as JSON with 'question' and 'options' fields." },
+                { role: "system", content: "You are an AI assistant helping to create an app concept using a prompt. Ask a single, clear follow-up question about the app idea. Then, provide 5 possible answers as options, but do not include these in your question. Important: Format your response as JSON with 'question' and 'options' fields." },
                 { role: "user", content: input }
             ]);
 
@@ -217,7 +217,7 @@ const AIChatbotApp: React.FC = () => {
                 const aiResponse = await handleApiCall([
                     {
                         role: "system",
-                        content: "You are an AI assistant helping to create an app concept. Based on the previous conversation, ask a single, clear follow-up question about another aspect of the app. Then, provide 5 possible answers as options, but do not include these in your question. Format your response as JSON with 'question' and 'options' fields."
+                        content: "You are an AI assistant helping to create an app concept. Based on the previous conversation, ask a single, clear follow-up question about another aspect(product related and technical) of the app that is still unclear but important to build initial version. Then, provide 5 possible answers as options, but do not include these in your question. Format your response as JSON with 'question' and 'options' fields."
                     },
                     ...messages.map(msg => ({
                         role: msg.isUser ? "user" : "assistant",

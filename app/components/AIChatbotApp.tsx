@@ -58,7 +58,7 @@ const TypingEffect: React.FC<{ text: string; onComplete: () => void }> = ({ text
             const timer = setTimeout(() => {
                 setDisplayText(prev => prev + text[currentIndex]);
                 setCurrentIndex(prev => prev + 1);
-            }, 30);
+            }, 20);
             return () => clearTimeout(timer);
         } else {
             onComplete();
@@ -335,7 +335,7 @@ const AIChatbotApp: React.FC = () => {
                             <p
                                 key={message.id}
                                 style={{ opacity: message.opacity }}
-                                className={`text-[17px] leading-[26px] transition-opacity duration-300 ${
+                                className={`text-[19px] leading-[26px] transition-opacity duration-300 ${
                                     message.isUser ? 'text-gray-700' : 'font-semibold text-gray-900'
                                 }`}
                             >

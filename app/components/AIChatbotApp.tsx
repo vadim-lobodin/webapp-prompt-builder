@@ -23,7 +23,7 @@ interface Choice {
 }
 
 interface AIResponse {
-    question: string;
+    question?: string;
     options: string[];
 }
 
@@ -109,7 +109,7 @@ const AIChatbotApp: React.FC = () => {
         setShowChoices(true);
     }, []);
 
-    const handleApiCall = useCallback(async (messages: OpenAI.Chat.ChatCompletionMessageParam[]): Promise<AIResponse> => {
+    const handleApiCall = useCallback(async (messages: OpenAI.Chat.ChatCompletionMessageParam[], expectQuestion: boolean = true): Promise<AIResponse> => {
         try {
             console.log('Sending API request with messages:', messages);
 
@@ -127,16 +127,29 @@ const AIChatbotApp: React.FC = () => {
 
             console.log('Raw content from AI:', content);
 
-            // Remove any markdown formatting
-            const cleanedContent = content.replace(/^```json\n|\n```$/g, '').trim();
-
-            console.log('Cleaned content:', cleanedContent);
-
-            const parsedResponse = JSON.parse(cleanedContent) as AIResponse;
+            // Try to parse as JSON, if it fails, attempt to extract question and/or options
+            let parsedResponse: AIResponse;
+            try {
+                // Remove any markdown formatting and try to parse as JSON
+                const cleanedContent = content.replace(/^```json\n|\n```$/g, '').trim();
+                parsedResponse = JSON.parse(cleanedContent) as AIResponse;
+            } catch (parseError) {
+                console.log('Failed to parse as JSON, attempting to extract content');
+                // If parsing fails, try to extract question and/or options from the text
+                const lines = content.split('\n').filter(line => line.trim() !== '');
+                if (expectQuestion) {
+                    const question = lines[0];
+                    const options = lines.slice(1).map(line => line.replace(/^-\s*/, '').trim());
+                    parsedResponse = { question, options };
+                } else {
+                    const options = lines.map(line => line.replace(/^-\s*/, '').trim());
+                    parsedResponse = { options };
+                }
+            }
 
             console.log('Parsed response:', parsedResponse);
 
-            if (!parsedResponse.question && !Array.isArray(parsedResponse.options)) {
+            if ((expectQuestion && !parsedResponse.question) || !Array.isArray(parsedResponse.options) || parsedResponse.options.length === 0) {
                 throw new Error("Invalid response structure from AI");
             }
 
@@ -166,8 +179,8 @@ const AIChatbotApp: React.FC = () => {
                 { role: "user", content: input }
             ]);
 
-            addMessage(aiResponse.question, false);
-            setCurrentQuestion(aiResponse.question);
+            addMessage(aiResponse.question || "What would you like to know about the app?", false);
+            setCurrentQuestion(aiResponse.question || "What would you like to know about the app?");
             setChoices(aiResponse.options.map((option) => ({
                 label: option,
                 isSelected: false
@@ -213,8 +226,8 @@ const AIChatbotApp: React.FC = () => {
                     { role: "user", content: selectedChoices.join(', ') }
                 ]);
 
-                addMessage(aiResponse.question, false);
-                setCurrentQuestion(aiResponse.question);
+                addMessage(aiResponse.question || "What else would you like to know about the app?", false);
+                setCurrentQuestion(aiResponse.question || "What else would you like to know about the app?");
                 setChoices(aiResponse.options.map((option) => ({
                     label: option,
                     isSelected: false
@@ -244,7 +257,7 @@ const AIChatbotApp: React.FC = () => {
                     content: "You are an AI assistant helping to create an app concept. Based on the given question and existing choices, provide 5 additional, diverse, and relevant options. These should be different from the existing choices but still closely related to the question. Format your response as JSON with an 'options' field containing an array of 5 strings."
                 },
                 { role: "user", content: `Current question: "${currentQuestion}"\n\nExisting choices: ${choices.map(c => c.label).join(', ')}\n\nGenerate 5 more relevant and diverse options related to this question, different from the existing choices.` }
-            ]);
+            ], false);
 
             console.log('Received AI response:', aiResponse);
 

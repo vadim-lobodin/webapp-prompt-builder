@@ -117,7 +117,7 @@ const AIChatbotApp: React.FC = () => {
                         console.log('Sending API request with messages:', messages);
 
                         const response = await openai.chat.completions.create({
-                                model: "gpt-4",
+                                model: "gpt-4o",
                                 messages,
                         });
 
@@ -175,7 +175,7 @@ const AIChatbotApp: React.FC = () => {
 
                 try {
                         const validationResponse = await openai.chat.completions.create({
-                                model: "gpt-4",
+                                model: "gpt-4o",
                                 messages: [
                                         { role: "system", content: "You are an AI assistant validating app idea prompts. Respond with 'VALID' for good prompts, 'ABSTRACT' for too abstract prompts, or 'INVALID' for prompts you can't process." },
                                         { role: "user", content: input }

@@ -84,6 +84,7 @@ const AIChatbotApp: React.FC = () => {
     const [showChoices, setShowChoices] = useState(false);
     const [currentQuestion, setCurrentQuestion] = useState<string>('');
     const [isTypingComplete, setIsTypingComplete] = useState(true);
+    const [promptError, setPromptError] = useState<string | null>(null);
 
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -167,24 +168,42 @@ const AIChatbotApp: React.FC = () => {
     const handleSendMessage = useCallback(async () => {
         if (!input.trim()) return;
 
-        addMessage(input, true);
-        setInput('');
-        setStage('in_progress');
-        setReadyPercentage(20);
+        setPromptError(null);
         setIsLoading(true);
 
         try {
-            const aiResponse = await handleApiCall([
-                { role: "system", content: "You are an AI assistant helping to create an app concept using a prompt. Ask a single, clear follow-up question about the app idea. Then, provide 5 possible answers as options, but do not include these in your question. Important: Format your response as JSON with 'question' and 'options' fields." },
-                { role: "user", content: input }
-            ]);
+            const validationResponse = await openai.chat.completions.create({
+                model: "gpt-4",
+                messages: [
+                    { role: "system", content: "You are an AI assistant validating app idea prompts. Respond with 'VALID' for good prompts, 'ABSTRACT' for too abstract prompts, or 'INVALID' for prompts you can't process." },
+                    { role: "user", content: input }
+                ],
+            });
 
-            addMessage(aiResponse.question || "What would you like to know about the app?", false);
-            setCurrentQuestion(aiResponse.question || "What would you like to know about the app?");
-            setChoices(aiResponse.options.map((option) => ({
-                label: option,
-                isSelected: false
-            })));
+            const validationResult = validationResponse.choices[0].message.content?.trim().toUpperCase();
+
+            if (validationResult === 'VALID') {
+                addMessage(input, true);
+                setInput('');
+                setStage('in_progress');
+                setReadyPercentage(20);
+
+                const aiResponse = await handleApiCall([
+                    { role: "system", content: "You are an AI assistant helping to create an app concept using a prompt. Ask a single, clear follow-up question about the app idea. Then, provide 5 possible answers as options, but do not include these in your question. Important: Format your response as JSON with 'question' and 'options' fields." },
+                    { role: "user", content: input }
+                ]);
+
+                addMessage(aiResponse.question || "What would you like to know about the app?", false);
+                setCurrentQuestion(aiResponse.question || "What would you like to know about the app?");
+                setChoices(aiResponse.options.map((option) => ({
+                    label: option,
+                    isSelected: false
+                })));
+            } else if (validationResult === 'ABSTRACT') {
+                setPromptError("Your prompt is too abstract. Please be more specific. For example: 'A social media app for book lovers' instead of 'An app for people'.");
+            } else {
+                setPromptError("I couldn't understand your prompt. Please try again. Examples: 'A fitness tracking app' or 'An e-commerce platform for handmade crafts'.");
+            }
         } catch (error) {
             console.error('Error in handleSendMessage:', error);
             addMessage("I'm sorry, I encountered an error processing the response. Please try again.", false);
@@ -209,7 +228,7 @@ const AIChatbotApp: React.FC = () => {
         setSelectedChoices([]);
         setChoices([]);
 
-        setReadyPercentage(prev => Math.min(100, prev + 20));
+        setReadyPercentage(prev => Math.min(100, prev + 15));
 
         if (readyPercentage < 80) {
             setIsLoading(true);
@@ -288,7 +307,7 @@ const AIChatbotApp: React.FC = () => {
 
     useEffect(() => {
         window.scrollTo(0, document.body.scrollHeight);
-    }, [messages, showChoices]);
+    }, [messages, showChoices, promptError]);
 
     if (isLoading && stage === 'completed') {
         return (
@@ -305,29 +324,34 @@ const AIChatbotApp: React.FC = () => {
         <div className="flex justify-center items-center min-h-screen w-full bg-gradient-to-b from-[#DBDEE3] to-[#FAFAFA] p-4">
             <div className="w-full max-w-[800px] space-y-7">
                 {stage === 'initial' ? (
-                    <div className="flex gap-3">
-                        <Input
-                            ref={inputRef}
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                            placeholder="What kind of app would you like to create?"
-                            className="flex-grow h-14 text-lg"
-                        />
-                        <Button
-                            onClick={handleSendMessage}
-                            className="rounded-full w-14 h-14 p-0 flex items-center justify-center bg-black hover:bg-gray-800"
-                            disabled={isLoading}
-                            style={{ aspectRatio: '1 / 1' }}
-                        >
-                            {isLoading ? (
-                                <div className="w-6 h-6 border-t-2 border-white rounded-full animate-spin"></div>
-                            ) : (
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-7 h-7 text-white">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                            )}
-                        </Button>
+                    <div className="space-y-3">
+                        <div className="flex gap-3">
+                            <Input
+                                ref={inputRef}
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                                placeholder="What kind of app would you like to create?"
+                                className="flex-grow h-14 text-lg"
+                            />
+                            <Button
+                                onClick={handleSendMessage}
+                                className="rounded-full w-14 h-14 p-0 flex items-center justify-center bg-black hover:bg-gray-800"
+                                disabled={isLoading}
+                                style={{ aspectRatio: '1 / 1' }}
+                            >
+                                {isLoading ? (
+                                    <div className="w-6 h-6 border-t-2 border-white rounded-full animate-spin"></div>
+                                ) : (
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-7 h-7 text-white">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                )}
+                            </Button>
+                        </div>
+                        {promptError && (
+                            <p className="text-red-500 text-sm mt-2">{promptError}</p>
+                        )}
                     </div>
                 ) : (
                     <>

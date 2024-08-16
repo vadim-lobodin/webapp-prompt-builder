@@ -369,7 +369,7 @@ const AIChatbotApp: React.FC = () => {
                                                 </Button>
                                         </div>
                                         {promptError && (
-                                            <p className="text-red-500 text-sm mt-2">{promptError}</p>
+                                            <p className="text-gray-600 text-sm mt-2">{promptError}</p>
                                         )}
                                 </div>
                             ) : (
